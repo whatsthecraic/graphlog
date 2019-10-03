@@ -1,0 +1,12 @@
+# Project files
+/.idea/
+/.cproject
+/.project
+/.settings/
+
+# Build
+/build/
+/Debug/
+/Release/
+/cmake-build-debug/
+/cmake-build-release/

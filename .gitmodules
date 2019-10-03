@@ -1,0 +1,4 @@
+[submodule "lib/common"]
+	path = lib/common
+	url = https://github.com/whatsthecraic/libcommon
+	branch = master
