@@ -38,14 +38,16 @@ endif()
 # Create the list of objects
 add_subdirectory(lib/common)
 
-add_executable(${PROJECT_NAME}
+add_executable(graphlog
     lib/cxxopts.hpp
+    counting_tree.cpp counting_tree.hpp
     graphalytics_reader.cpp graphalytics_reader.hpp
     main.cpp
 )
-target_link_libraries(${PROJECT_NAME} PRIVATE libcommon)
 
-get_c_compiler_flags(${PROJECT_NAME}  c_flags)
-get_cxx_compiler_flags(${PROJECT_NAME}  cxx_flags)
+target_link_libraries(graphlog PRIVATE libcommon)
+
+get_c_compiler_flags(graphlog c_flags)
+get_cxx_compiler_flags(graphlog cxx_flags)
 message("Compiler C..........: ${CMAKE_C_COMPILER} ${c_flags}")
 message("Compiler C++........: ${CMAKE_CXX_COMPILER} ${cxx_flags}")

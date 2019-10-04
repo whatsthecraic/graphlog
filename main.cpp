@@ -7,6 +7,8 @@
 #include "lib/common/filesystem.hpp"
 #include "lib/cxxopts.hpp"
 
+#include "counting_tree.hpp"
+
 using namespace common;
 using namespace std;
 
@@ -38,7 +40,7 @@ int main(int argc, char* argv[]) {
 static void parse_command_line_arguments(int argc, char* argv[]){
     using namespace cxxopts;
 
-    Options options(argv[0], "Graph Generator of Updates (graphlog): create a log of updates based on the distribution of the input graph");
+    Options options(argv[0], "Graph Generator of Updates (graphlog): create a log of edge updates based on the distribution of the input graph");
     options.custom_help(" [options] <input> <output>");
     options.add_options()
         ("e, efe", "Expansion factor for the edges in the graph", value<double>()->default_value(to_string(g_ef_edges)))
@@ -49,7 +51,7 @@ static void parse_command_line_arguments(int argc, char* argv[]){
 
     auto parsed_args = options.parse(argc, argv);
 
-    if(parsed_args.count("help") > 0){
+    if( argc == 1 || parsed_args.count("help") > 0 ){
         cout << options.help() << endl;
         exit(EXIT_SUCCESS);
     }
