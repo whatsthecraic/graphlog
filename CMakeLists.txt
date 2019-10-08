@@ -35,17 +35,24 @@ if("${cxx_flags}" MATCHES "( |^)-g( |$)")
     append_compiler_flag("-fno-limit-debug-info" "CXX")
 endif()
 
+find_package(ZLIB)
+
 # Create the list of objects
 add_subdirectory(lib/common)
 
 add_executable(graphlog
     lib/cxxopts.hpp
+    abtree.hpp
     counting_tree.cpp counting_tree.hpp
+    edge.cpp edge.hpp
+    generator.cpp generator.hpp
     graphalytics_reader.cpp graphalytics_reader.hpp
     main.cpp
+    writer.cpp writer.hpp
 )
 
-target_link_libraries(graphlog PRIVATE libcommon)
+target_link_libraries(graphlog PUBLIC libcommon)
+target_link_libraries(graphlog PUBLIC ZLIB::ZLIB)
 
 get_c_compiler_flags(graphlog c_flags)
 get_cxx_compiler_flags(graphlog cxx_flags)

@@ -28,9 +28,7 @@
 using namespace std;
 
 #undef CURRENT_ERROR_TYPE
-#define CURRENT_ERROR_TYPE ::reader::ReaderError
-
-namespace reader {
+#define CURRENT_ERROR_TYPE ::ReaderError
 
 /*****************************************************************************
  *                                                                           *
@@ -192,11 +190,11 @@ void GraphalyticsReader::reset(){
  *                                                                           *
  *****************************************************************************/
 
-bool GraphalyticsReader::read(uint64_t& out_source, uint64_t& out_destination){
-    return read_edge(out_source, out_destination);
+bool GraphalyticsReader::read(uint64_t& out_source, uint64_t& out_destination, double& out_weight){
+    return read_edge(out_source, out_destination, out_weight);
 }
 
-bool GraphalyticsReader::read_edge(uint64_t& out_source, uint64_t& out_destination){
+bool GraphalyticsReader::read_edge(uint64_t& out_source, uint64_t& out_destination, double& out_weight){
     if(m_handle_edge_file == nullptr) {
         COUT_DEBUG("Opening the input stream `" << get_path_edge_list() << "'");
         m_handle_edge_file = new fstream(get_path_edge_list());
@@ -236,12 +234,23 @@ bool GraphalyticsReader::read_edge(uint64_t& out_source, uint64_t& out_destinati
         if(!is_number(current)) ERROR("line: `" << current_line << "', cannot read the destination vertex");
         m_last_destination = strtoull(current, &next, 10);
 
+        if(is_weighted()){
+            while(isspace(next[0])) next++;
+            current = next;
+            if(!is_number(current)) ERROR("line: `" << current_line << "', cannot read the weight");
+            m_last_weight = strtod(current, nullptr);
+        } /*else {
+            uniform_real_distribution<double> distribution{1.0, configuration().max_weight()};
+            m_last_weight = distribution(m_random_generator);
+        }*/
+
         m_last_reported = false;
     }
 
     out_source = m_last_source;
     out_destination = m_last_destination;
-    COUT_DEBUG("edge parsed: " << out_source << " -> " << out_destination);
+    out_weight = m_last_weight;
+    COUT_DEBUG("edge parsed: " << out_source << " -> " << out_destination << ", weight: " << out_weight);
 
     return true;
 }
@@ -293,5 +302,3 @@ bool GraphalyticsReader::ignore_line(const std::string& line){
 bool GraphalyticsReader::is_number(const char* marker){
     return marker != nullptr && (marker[0] >= '0' && marker[0] <= '9');
 }
-
-} // namespace

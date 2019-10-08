@@ -5,26 +5,50 @@
 
 #include "lib/common/error.hpp"
 #include "lib/common/filesystem.hpp"
+#include "lib/common/system.hpp"
+#include "lib/common/timer.hpp"
 #include "lib/cxxopts.hpp"
 
-#include "counting_tree.hpp"
+#include "generator.hpp"
+#include "writer.hpp"
 
 using namespace common;
 using namespace std;
 
 // globals
-double g_ef_edges = 1.1; // expansion factor for the edges in the graph
+double g_aging = 10.0; // number of operations to perform, w.r.t. to the size of the loaded graph
+double g_ef_edges = 1.0; // expansion factor for the edges in the graph
 double g_ef_vertices = 1.2; // expansion factor for the vertices in the graph
 string g_path_input; // path to the input graph, in the Graphalytics format
-string g_path_output; // path to where to store the log of updates
+string g_path_output; // path where to store the log of updates
 uint64_t g_seed = std::random_device{}(); // the seed to use for the random generator
 
 // function prototypes
 static void parse_command_line_arguments(int argc, char* argv[]);
+static uint64_t num_operations(); // total number of operations to produce
+
 
 int main(int argc, char* argv[]) {
+    Timer timer; timer.start();
+
     try {
         parse_command_line_arguments(argc, argv);
+
+        Generator generator {g_path_input, 1.0, g_ef_vertices, g_ef_edges, g_aging, g_seed};
+        auto op_list = generator.generate();
+
+        Writer writer;
+        writer.set_property("aging_coeff", g_aging);
+        writer.set_property("ef_edges", g_ef_edges);
+        writer.set_property("eg_vertices", g_ef_vertices);
+        writer.set_property("git_last_commit", common::git_last_commit());
+        writer.set_property("hostname", common::hostname());
+        writer.set_property("input_graph", g_path_input);
+        writer.set_property("seed", g_seed);
+        writer.set_vertices(generator.vertices(), generator.num_vertices(), generator.num_final_vertices());
+        writer.set_edges(generator.edges(), generator.num_edges());
+        writer.set_operations(op_list.get(), generator.num_operations());
+        writer.save(g_path_output);
 
     } catch (common::Error& e){
         cerr << e << endl;
@@ -32,6 +56,8 @@ int main(int argc, char* argv[]) {
         cerr << "Program terminated" << endl;
         return 1;
     }
+
+    cout << "\nWhole completion time " << timer << "\n";
 
     return 0;
 }
@@ -43,6 +69,7 @@ static void parse_command_line_arguments(int argc, char* argv[]){
     Options options(argv[0], "Graph Generator of Updates (graphlog): create a log of edge updates based on the distribution of the input graph");
     options.custom_help(" [options] <input> <output>");
     options.add_options()
+        ("a, aging", "Number of operations to produce w.r.t. the size of the loaded graph", value<double>()->default_value(to_string(g_aging)))
         ("e, efe", "Expansion factor for the edges in the graph", value<double>()->default_value(to_string(g_ef_edges)))
         ("v, efv", "Expansion factor for the vertices in the graph", value<double>()->default_value(to_string(g_ef_vertices)))
         ("h, help", "Show this help menu")
@@ -64,6 +91,14 @@ static void parse_command_line_arguments(int argc, char* argv[]){
     }
     g_path_input = argv[1];
     g_path_output = argv[2];
+
+    if(parsed_args.count("aging") > 0){
+        double value = parsed_args["aging"].as<double>();
+        if(value < 1.0){
+            INVALID_ARGUMENT("The expansion factor must be a value equal or greater than 1: " << value);
+        }
+        g_aging = value;
+    }
 
     if(parsed_args.count("efv") > 0){
         double value = parsed_args["efv"].as<double>();
@@ -87,8 +122,9 @@ static void parse_command_line_arguments(int argc, char* argv[]){
 
     cout << "Path input graph: " << g_path_input << "\n";
     cout << "Path output log: " << g_path_output << "\n";
+    cout << "Aging factor: " << g_aging << "\n";
     cout << "Expansion factor for the vertices: " << g_ef_vertices << "\n";
     cout << "Expansion factor for the edges: " << g_ef_edges << "\n";
-    cout << "Seed for the random generator:  " << g_seed << "\n";
+    cout << "Seed for the random generator: " << g_seed << "\n";
     cout << endl;
 }

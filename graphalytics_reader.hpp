@@ -22,8 +22,6 @@
 
 #include "lib/common/error.hpp"
 
-namespace reader {
-
 /**
  * An exception raised by the reader while parsing the input files
  */
@@ -40,7 +38,7 @@ class GraphalyticsReader {
     bool m_is_weighted = false; // whether the graph being processed contains weights or not
     void* m_handle_edge_file { nullptr }; // fstream, handle to parse the edge-file
     void* m_handle_vertex_file { nullptr }; // fstream, handle to parse the vertex-file
-    uint64_t m_last_source {0}; uint64_t m_last_destination {0}; // the last edge being parsed
+    uint64_t m_last_source {0}; uint64_t m_last_destination {0}; double m_last_weight{0.0}; // the last edge being parsed
     bool m_last_reported = true; // whether we have reported the last edge with source/dest vertices swapped in an undirected graph
     bool m_emit_directed_edges = false; // if the graph is undirected, report the same edge twice as src -> dest and dest -> src
 
@@ -72,12 +70,12 @@ public:
     /**
      * Interface, report one edge at the time
      */
-    bool read(uint64_t& out_source, uint64_t& out_destination);
+    bool read(uint64_t& out_source, uint64_t& out_destination, double& out_weight);
 
     /**
      * Iterator, read one edge at the time from the graph
      */
-    bool read_edge(uint64_t& out_source, uint64_t& out_destination);
+    bool read_edge(uint64_t& out_source, uint64_t& out_destination, double& out_weight);
 
     /**
      * Iterator, read one vertex at the time from the graph
@@ -117,5 +115,3 @@ public:
      */
     void set_emit_directed_edges(bool value);
 };
-
-} // namespace

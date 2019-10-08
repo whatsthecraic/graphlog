@@ -53,8 +53,9 @@ CountingTree::~CountingTree() {
 }
 
 template<CountingTree::UpdateType type>
-CountingTree::value_t CountingTree::update_slot(value_t* __restrict slot, value_t value1){
+CountingTree::value_t CountingTree::update_slot(value_t* __restrict slot, value_t value1, value_t* out_value0){
     value_t value0 = *slot;
+    if(out_value0 != nullptr) *out_value0 = value0;
     switch(type){
     case UpdateType::SET:
         if(value1 < 0) INVALID_ARGUMENT("The given value is negative: " << value1);
@@ -81,10 +82,10 @@ CountingTree::value_t CountingTree::update_slot(value_t* __restrict slot, value_
 }
 
 template<CountingTree::UpdateType type>
-CountingTree::value_t CountingTree::update_rec(value_t* __restrict index, uint64_t position, value_t value, int32_t height, bool is_rightmost){
+CountingTree::value_t CountingTree::update_rec(value_t* __restrict index, uint64_t position, value_t value, int32_t height, bool is_rightmost, value_t* out_old_value){
     assert(height > 0 && "This is going to lead to an infinite recursion");
     if(height == 1){ // base case
-        return update_slot<type>(index + position, value);
+        return update_slot<type>(index + position, value, out_old_value);
     }
 
     // traverse the tree down
@@ -98,7 +99,7 @@ CountingTree::value_t CountingTree::update_rec(value_t* __restrict index, uint64
     bool is_subtree_rightmost = is_rightmost && (subtree_id == root_sz -1);
     int32_t subtree_height = is_subtree_rightmost ? m_subtree[height -1].m_rightmost_height : height -1;
 
-    value_t diff = update_rec<type>(subtree_start, subtree_pos, value, subtree_height, is_subtree_rightmost);
+    value_t diff = update_rec<type>(subtree_start, subtree_pos, value, subtree_height, is_subtree_rightmost, out_old_value);
 
     // now traverse the tree up
     index[subtree_id] += diff;
@@ -106,18 +107,18 @@ CountingTree::value_t CountingTree::update_rec(value_t* __restrict index, uint64
 }
 
 template<CountingTree::UpdateType type>
-void CountingTree::update(uint64_t position, value_t value){
+void CountingTree::update(uint64_t position, value_t value, value_t* out_old_value){
     if(position >= size()) INVALID_ARGUMENT("Invalid position: " << position << ". The total size of the index is: " << size());
-    value_t diff = update_rec<type>(m_index, position, value, m_height, true);
+    value_t diff = update_rec<type>(m_index, position, value, m_height, true, out_old_value);
     m_total_count += diff;
 }
 
-void CountingTree::set(uint64_t position, CountingTree::value_t value) {
-    update<UpdateType::SET>(position, value);
+void CountingTree::set(uint64_t position, value_t value, value_t* out_old_value) {
+    update<UpdateType::SET>(position, value, out_old_value);
 }
 
-void CountingTree::unset(uint64_t position){
-    set(position, 0);
+void CountingTree::unset(uint64_t position, value_t* out_old_value){
+    set(position, 0, out_old_value);
 }
 
 uint64_t CountingTree::search(value_t value) const {

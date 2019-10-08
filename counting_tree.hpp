@@ -43,11 +43,11 @@ private:
     // Set the value associated to a field
     enum class UpdateType { SET, SET_IF_UNSET, ADD, SUBTRACT };
     template<UpdateType type>
-    value_t update_slot(value_t* __restrict slot, value_t value);
+    value_t update_slot(value_t* __restrict slot, value_t new_value, value_t* out_old_value);
     template<UpdateType type>
-    value_t update_rec(value_t* __restrict index, uint64_t position, value_t value, int32_t height, bool is_rightmost);
+    value_t update_rec(value_t* __restrict index, uint64_t position, value_t value, int32_t height, bool is_rightmost, value_t* out_old_value);
     template<UpdateType type>
-    void update(uint64_t position, value_t value);
+    void update(uint64_t position, value_t value, value_t* out_old_value);
 
 public:
     // Create a CountingTree with a given fixed size
@@ -57,10 +57,10 @@ public:
     ~CountingTree();
 
     // Set the score for the value at the given position
-    void set(uint64_t position, value_t value);
+    void set(uint64_t position, value_t value, value_t* out_old_value = nullptr);
 
     // Reset to zero the score for the value at the given position
-    void unset(uint64_t position);
+    void unset(uint64_t position, value_t* out_old_value = nullptr);
 
     // Return the first position such as the cumulative sum of all positions before is greater than the given value
     uint64_t search(value_t value) const;
