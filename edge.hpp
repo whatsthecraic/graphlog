@@ -33,6 +33,8 @@ struct WeightedEdge : public Edge {
     // Check whether two edges are equal
     bool operator==(const WeightedEdge&) const noexcept;
     bool operator!=(const WeightedEdge&) const noexcept;
+
+    Edge edge() const;
 };
 
 std::ostream& operator<<(std::ostream& out, const Edge& e);

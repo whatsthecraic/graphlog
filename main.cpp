@@ -1,5 +1,6 @@
 #include <cassert>
 #include <iostream>
+#include <mutex>
 #include <random>
 #include <string>
 
@@ -23,6 +24,9 @@ string g_path_input; // path to the input graph, in the Graphalytics format
 string g_path_output; // path where to store the log of updates
 uint64_t g_seed = std::random_device{}(); // the seed to use for the random generator
 
+// logging
+mutex g_mutex_log;
+
 // function prototypes
 static void parse_command_line_arguments(int argc, char* argv[]);
 static uint64_t num_operations(); // total number of operations to produce
@@ -34,22 +38,17 @@ int main(int argc, char* argv[]) {
     try {
         parse_command_line_arguments(argc, argv);
 
-        Generator generator {g_path_input, 1.0, g_ef_vertices, g_ef_edges, g_aging, g_seed};
-        auto op_list = generator.generate();
-
         Writer writer;
         writer.set_property("aging_coeff", g_aging);
         writer.set_property("ef_edges", g_ef_edges);
-        writer.set_property("eg_vertices", g_ef_vertices);
+        writer.set_property("ef_vertices", g_ef_vertices);
         writer.set_property("git_last_commit", common::git_last_commit());
         writer.set_property("hostname", common::hostname());
         writer.set_property("input_graph", g_path_input);
         writer.set_property("seed", g_seed);
-        writer.set_vertices(generator.vertices(), generator.num_vertices(), generator.num_final_vertices());
-        writer.set_edges(generator.edges(), generator.num_edges());
-        writer.set_operations(op_list.get(), generator.num_operations());
-        writer.save(g_path_output);
 
+        Generator generator {g_path_input, g_path_output, writer, 1.0, g_ef_vertices, g_ef_edges, g_aging, g_seed};
+        generator.generate();
     } catch (common::Error& e){
         cerr << e << endl;
         cerr << "Type `" << argv[0] << " --help' to check how to run the program\n";

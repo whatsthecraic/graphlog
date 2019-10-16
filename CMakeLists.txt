@@ -48,6 +48,7 @@ add_executable(graphlog
     generator.cpp generator.hpp
     graphalytics_reader.cpp graphalytics_reader.hpp
     main.cpp
+    output_buffer.cpp output_buffer.hpp
     writer.cpp writer.hpp
 )
 

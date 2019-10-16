@@ -28,6 +28,10 @@ WeightedEdge::WeightedEdge(uint32_t source, uint32_t destination, double weight)
     assert(m_weight >= 0 && "Expected a non-negative value");
 }
 
+Edge WeightedEdge::edge() const {
+    return Edge{source(), destination()};
+}
+
 bool WeightedEdge::operator==(const WeightedEdge& e) const noexcept {
     return source() == e.source() && destination() == e.destination() && weight() == e.weight();
 }
