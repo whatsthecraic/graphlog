@@ -49,12 +49,12 @@ struct InitVertexRecord {
 };
 }
 
-Generator::Generator(const std::string& path_input_graph, const std::string& path_output_log, Writer& writer, double sf_frequency, double ef_vertices, double ef_edges, double aging_factor, uint64_t seed) :
+Generator::Generator(const std::string& path_input_graph, const std::string& path_output_log, Writer& writer, double sf_frequency, double ef_vertices, double ef_edges, double aging_factor, uint64_t seed, double max_weight) :
     m_writer(writer), m_num_operations(0), m_seed(seed), m_random(m_seed){
     unordered_map<uint64_t, InitVertexRecord> map_frequencies;
     unique_ptr<WeightedEdge[]> ptr_weighted_edges;
 
-    init_read_input_graph(&ptr_weighted_edges, &map_frequencies, path_input_graph, ef_vertices);
+    init_read_input_graph(&ptr_weighted_edges, &map_frequencies, path_input_graph, ef_vertices, seed, max_weight);
 
     m_num_max_edges = ef_edges * m_num_edges_final;
     m_num_operations = aging_factor * m_num_edges_final;
@@ -81,7 +81,7 @@ Generator::~Generator(){
     }
 }
 
-void Generator::init_read_input_graph(void* ptr_array_edges, void* ptr_frequencies, const std::string& path_input_graph, double expansion_factor_vertices) {
+void Generator::init_read_input_graph(void* ptr_array_edges, void* ptr_frequencies, const std::string& path_input_graph, double expansion_factor_vertices, uint64_t seed, double max_weight) {
     LOG("Reading the input graph from: " << path_input_graph << " ... ");
     Timer timer;
     timer.start();
@@ -91,8 +91,9 @@ void Generator::init_read_input_graph(void* ptr_array_edges, void* ptr_frequenci
     assert(ptr_frequencies != nullptr);
     auto& frequencies = *reinterpret_cast<unordered_map<uint64_t, InitVertexRecord>*>(ptr_frequencies);
 
-    GraphalyticsReader reader{path_input_graph};
+    GraphalyticsReader reader{path_input_graph, seed + /* keep in sync with gfe */ 12908478};
     if(reader.is_directed()) ERROR("Only undirected graphs are supported. The input graph `" << path_input_graph << "' is directed");
+    reader.set_max_weight(max_weight);
 
     string prop_num_vertices = reader.get_property("meta.vertices");
     m_num_vertices_final = stoi(prop_num_vertices);
