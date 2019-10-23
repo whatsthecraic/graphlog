@@ -29,7 +29,7 @@ class Generator {
     std::unordered_map<Edge, bool> m_edges_present; // edges present during the creation of the graph
     std::mt19937_64 m_random;
 
-    void init_read_input_graph(void* ptr_edges_final, void* ptr_frequencies, const std::string& path_input_graph, double ef_vertices, uint64_t seed, double max_weight);
+    void init_read_input_graph(void* ptr_edges_final, void* ptr_frequencies, const std::string& path_input_graph, double ef_vertices);
     void init_temporary_vertices(void* ptr_map_frequencies, void* ptr_array_frequencies, double sf_frequency);
     void init_counting_tree(void* ptr_array_frequencies);
     void init_permute_edges_final(std::unique_ptr<WeightedEdge[]>& ptr_edges_final);
@@ -42,7 +42,7 @@ class Generator {
     uint64_t num_blocks_in_operations() const;
 public:
     // Constructor
-    Generator(const std::string& path_input_graph, const std::string& path_output_log, Writer& writer, double sf_frequencies, double ef_vertices, double ef_edges, double aging_factor, uint64_t seed, double max_weight);
+    Generator(const std::string& path_input_graph, const std::string& path_output_log, Writer& writer, double sf_frequencies, double ef_vertices, double ef_edges, double aging_factor, uint64_t seed);
 
     // Destructor
     ~Generator();

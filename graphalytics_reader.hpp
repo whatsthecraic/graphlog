@@ -41,8 +41,6 @@ class GraphalyticsReader {
     uint64_t m_last_source {0}; uint64_t m_last_destination {0}; double m_last_weight{0.0}; // the last edge being parsed
     bool m_last_reported = true; // whether we have reported the last edge with source/dest vertices swapped in an undirected graph
     bool m_emit_directed_edges = false; // if the graph is undirected, report the same edge twice as src -> dest and dest -> src
-    double m_max_weight = 1.0; // the maximum weight to generate when operating on non weighted graph
-    std::mt19937 m_random_generator; // generator for the weights
 
     // Close the internal handles to parse the edge-file/vertex-file
     void close();
@@ -62,7 +60,7 @@ public:
     /**
      * Init the reader with the path to the graph property files (*.properties)
      */
-    GraphalyticsReader(const std::string& path_properties, uint64_t seed = std::random_device{}());
+    GraphalyticsReader(const std::string& path_properties);
 
     /**
      * Destructor
@@ -116,9 +114,4 @@ public:
      * Shall we report the same edge twice in an undirected graph, once as src -> dest and once as dest -> src
      */
     void set_emit_directed_edges(bool value);
-
-    /**
-     * Set the max weight that can be generated when reading non weighted graphs
-     */
-     void set_max_weight(double value);
 };

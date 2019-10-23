@@ -22,7 +22,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
-#include <random>
 #include <regex>
 #include "lib/common/filesystem.hpp"
 
@@ -49,7 +48,7 @@ using namespace std;
  *  Initialisation                                                           *
  *                                                                           *
  *****************************************************************************/
-GraphalyticsReader::GraphalyticsReader(const std::string& path_properties, uint64_t seed) : m_random_generator(seed) {
+GraphalyticsReader::GraphalyticsReader(const std::string& path_properties) {
     if(!common::filesystem::file_exists(path_properties)) ERROR("The given file does not exist: " << path_properties);
     string abs_path_properties = common::filesystem::absolute_path(path_properties);
     m_properties.insert({string("property-file"), abs_path_properties});
@@ -159,11 +158,6 @@ void GraphalyticsReader::set_emit_directed_edges(bool value){
     m_emit_directed_edges = value;
 }
 
-void GraphalyticsReader::set_max_weight(double value) {
-    if(value <= 0) INVALID_ARGUMENT("Expected a positive value: " << value);
-    m_max_weight = value;
-}
-
 /*****************************************************************************
  *                                                                           *
  *  Handles                                                                  *
@@ -245,10 +239,10 @@ bool GraphalyticsReader::read_edge(uint64_t& out_source, uint64_t& out_destinati
             current = next;
             if(!is_number(current)) ERROR("line: `" << current_line << "', cannot read the weight");
             m_last_weight = strtod(current, nullptr);
-        } else {
-            m_last_weight = uniform_real_distribution<double>{0, m_max_weight}(m_random_generator); // generates a value in [a, b)
-            if(m_last_weight == 0.0) m_last_weight = m_max_weight; // shift it to (a, b]
-        }
+        } /*else {
+            uniform_real_distribution<double> distribution{1.0, configuration().max_weight()};
+            m_last_weight = distribution(m_random_generator);
+        }*/
 
         m_last_reported = false;
     }

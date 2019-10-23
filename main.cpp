@@ -20,7 +20,6 @@ using namespace std;
 double g_aging = 10.0; // number of operations to perform, w.r.t. to the size of the loaded graph
 double g_ef_edges = 1.0; // expansion factor for the edges in the graph
 double g_ef_vertices = 1.2; // expansion factor for the vertices in the graph
-double g_max_weight = 1.0; // max weight to generate for non weighted graphs
 string g_path_input; // path to the input graph, in the Graphalytics format
 string g_path_output; // path where to store the log of updates
 uint64_t g_seed = std::random_device{}(); // the seed to use for the random generator
@@ -46,10 +45,9 @@ int main(int argc, char* argv[]) {
         writer.set_property("git_last_commit", common::git_last_commit());
         writer.set_property("hostname", common::hostname());
         writer.set_property("input_graph", g_path_input);
-        writer.set_property("max_weight", g_max_weight);
         writer.set_property("seed", g_seed);
 
-        Generator generator {g_path_input, g_path_output, writer, 1.0, g_ef_vertices, g_ef_edges, g_aging, g_seed, g_max_weight};
+        Generator generator {g_path_input, g_path_output, writer, 1.0, g_ef_vertices, g_ef_edges, g_aging, g_seed};
         generator.generate();
     } catch (common::Error& e){
         cerr << e << endl;
@@ -74,8 +72,7 @@ static void parse_command_line_arguments(int argc, char* argv[]){
         ("e, efe", "Expansion factor for the edges in the graph", value<double>()->default_value(to_string(g_ef_edges)))
         ("v, efv", "Expansion factor for the vertices in the graph", value<double>()->default_value(to_string(g_ef_vertices)))
         ("h, help", "Show this help menu")
-        ("seed", "Seed to initialise the random generator")
-        ("w, max_weight", "Set the maximum weight to use for non weighted graphs", value<double>()->default_value(to_string(g_max_weight)))
+        ("seed", "Seed to initialise the random generator", value<uint64_t>())
     ;
 
     auto parsed_args = options.parse(argc, argv);
@@ -122,20 +119,11 @@ static void parse_command_line_arguments(int argc, char* argv[]){
         g_seed = parsed_args["seed"].as<uint64_t>();
     }
 
-    if(parsed_args.count("max_weight") > 0){
-        double value = parsed_args["max_weight"].as<double>();
-        if(value <= 0){
-            INVALID_ARGUMENT("The argument --max_weight must be a positive value: " << value);
-        }
-        g_max_weight = value;
-    }
-
     cout << "Path input graph: " << g_path_input << "\n";
     cout << "Path output log: " << g_path_output << "\n";
     cout << "Aging factor: " << g_aging << "\n";
     cout << "Expansion factor for the vertices: " << g_ef_vertices << "\n";
     cout << "Expansion factor for the edges: " << g_ef_edges << "\n";
-    cout << "Max weight for non weighted graphs: " << g_max_weight << "\n";
     cout << "Seed for the random generator: " << g_seed << "\n";
     cout << endl;
 }
