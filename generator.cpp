@@ -266,9 +266,10 @@ void Generator::init_writer(const string& path_output){
     Timer timer;
     timer.start();
 
-    m_writer.set_property("internal.edges.cardinality", m_num_operations);
+    // We cannot guarantee to generate exactly `m_num_operations', as we could need to fill some deletions at the end
+    // We will store the actual number of operations (edges) generated at the end
+//    m_writer.set_property("internal.edges.cardinality", m_num_operations);
     m_writer.set_property("internal.edges.final", num_edges());
-    m_writer.set_property("internal.edges.num_blocks", num_blocks_in_operations());
     m_writer.set_property("internal.vertices.cardinality", num_vertices());
     m_writer.set_property("internal.vertices.final.cardinality", num_final_vertices());
     m_writer.set_property("internal.vertices.temporary.cardinality", num_temporary_vertices());
@@ -291,23 +292,19 @@ uint64_t Generator::num_blocks_in_final_edges() const {
     return (m_num_edges_final / m_num_final_edges_per_block) + (m_num_edges_final % m_num_final_edges_per_block != 0);
 }
 
-uint64_t Generator::num_blocks_in_operations() const {
-    return (m_num_operations / m_writer.num_edges_per_block()) + (m_num_edges_final % m_writer.num_edges_per_block() != 0);
-}
-
 /*****************************************************************************
  *                                                                           *
  *  Generate the operations                                                  *
  *                                                                           *
  *****************************************************************************/
-void Generator::generate() {
+uint64_t Generator::generate0() {
     cout << "Generating " << m_num_operations << " operations ..." << endl;
     Timer timer;
     timer.start();
 
     ABTree<uint64_t, Edge> temporary_edges; // edges that need to be removed before the end of the generation process
     unordered_map<Edge, uint64_t> edges_stored; // edges currently stored in the graph
-    OutputBuffer output{m_num_operations, m_writer}; // output buffer
+    OutputBuffer output{m_writer}; // output buffer
 //    uniform_real_distribution<double> unif_real{0., 1.}; // uniform distribution in [0, 1]
     uniform_int_distribution<uint64_t> unif_uint64_t{1, numeric_limits<uint64_t>::max()};
     uniform_int_distribution<uint64_t> unif_frequencies{0, (uint64_t) m_frequencies->total_count() - 1};
@@ -317,7 +314,7 @@ void Generator::generate() {
 //    double prob_bump = 1.0; // heuristics to bump up the probability of inserting a final edge
     uint64_t num_ops_performed = 0;
 
-    while (num_ops_performed < m_num_operations) {
+    while (num_ops_performed < m_num_operations || /* there are still edges to delete */ !temporary_edges.empty()) {
         assert(edges_final_position <= m_num_edges_final);
         uint64_t num_missing_final_edges = m_num_edges_final - edges_final_position;
 
@@ -335,10 +332,11 @@ void Generator::generate() {
 
         // shall we perform an insertion or a deletion ?
         if (temporary_edges.empty() || (edges_stored.size() < m_num_max_edges &&
-            (num_missing_final_edges > 0 && num_ops_performed + num_missing_final_edges + temporary_edges.size() <= m_num_operations))) {
+            (num_ops_performed + num_missing_final_edges + temporary_edges.size() <= m_num_operations))) {
+            // the condition above is not ideal: if we insert a new `temporary' edge, then the number of deletions also rises
+
             // this is an insertion, okay. Then should it be a final or a temporary edge?
-//            double prob_insert_final = prob_bump * static_cast<double>(num_missing_final_edges) / (m_num_operations - num_ops_performed);
-            if ((num_ops_performed + num_missing_final_edges + temporary_edges.size() == m_num_operations) ||
+            if ((num_missing_final_edges > 0 && (num_ops_performed + num_missing_final_edges + temporary_edges.size() >= m_num_operations)) ||
                 (edges_final_position < (static_cast<double>(num_ops_performed) / m_num_operations) * m_num_edges_final) ){
 
                 // retrieve the next block of final edges
@@ -454,8 +452,15 @@ void Generator::generate() {
     assert(edges_stored.size() == m_num_edges_final &&
                "The hash table to keep track which edges are in the graph does not match the edges that "
                "should be present at the end of the generation process");
-    assert(num_ops_performed == m_num_operations && "Generated a different number of operations than what requested");
+    assert(num_ops_performed >= m_num_operations && "Generated less operations than what requested");
 
     timer.stop();
     LOG("Operations generated in " << timer << ". Writing the final edges in the log file ... ");
+
+    return num_ops_performed;
+}
+
+void Generator::generate(){
+    uint64_t num_ops_performed = generate0(); // wait for the output buffer to complete...
+    m_writer.write_num_edges(num_ops_performed);
 }

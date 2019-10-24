@@ -32,13 +32,17 @@ extern std::mutex g_mutex_log;
  *                                                                           *
  *****************************************************************************/
 
-OutputBuffer::OutputBuffer(const uint64_t num_operations, Writer& writer) : m_num_operations(num_operations), m_writer(writer) {
+OutputBuffer::OutputBuffer(Writer& writer) : m_writer(writer) {
     m_writer.open_stream_edges();
 }
 
-OutputBuffer::~OutputBuffer() noexcept (false) {
-    if(m_buffer != nullptr) ERROR("Last output buffer not forwarded to the writer");
+OutputBuffer::~OutputBuffer() {
+    flush();
     m_writer.close_stream_edges();
+}
+
+uint64_t OutputBuffer::buffer_sz() const {
+    return m_writer.num_edges_per_block();
 }
 
 void OutputBuffer::emit(uint64_t source, uint64_t destination, double weight){
@@ -47,33 +51,39 @@ void OutputBuffer::emit(uint64_t source, uint64_t destination, double weight){
 
     // acquire a new buffer
     if(m_buffer == nullptr){
-        assert(m_index % m_writer.num_edges_per_block() == 0);
-        uint64_t block_id = m_index / m_writer.num_edges_per_block();
-        uint64_t num_blocks = m_num_operations / m_writer.num_edges_per_block() + (m_num_operations % m_writer.num_edges_per_block() != 0);
-        assert(block_id < num_blocks);
-        bool last_block = (block_id == num_blocks -1);
-        m_buffer_sz = last_block ? m_num_operations - block_id * m_writer.num_edges_per_block() : m_writer.num_edges_per_block();
-        m_buffer = (uint64_t*) malloc(m_buffer_sz * sizeof(uint64_t) * 3);
+        m_buffer = (uint64_t*) malloc(buffer_sz() * sizeof(uint64_t) * 3);
         if(m_buffer == nullptr) throw bad_alloc();
         m_buffer_pos = 0;
     }
 
     // write the edge in the buffer
     uint64_t* sources = m_buffer;
-    uint64_t* destinations = sources + m_buffer_sz;
-    double* weights = reinterpret_cast<double*>(destinations + m_buffer_sz);
+    uint64_t* destinations = sources + buffer_sz();
+    double* weights = reinterpret_cast<double*>(destinations + buffer_sz());
 
     sources[m_buffer_pos] = source;
     destinations[m_buffer_pos] = destination;
     weights[m_buffer_pos] = weight;
-
-    m_index++;
     m_buffer_pos++;
 
-    // release the buffer
-    if(m_buffer_pos == m_buffer_sz){
-        m_writer.write_edges(reinterpret_cast<uint8_t*>(m_buffer), m_buffer_sz * sizeof(uint64_t) *3);
-        m_buffer = nullptr;
-        m_buffer_sz = 0;
+    // release the buffer when it's full
+    if(m_buffer_pos == buffer_sz()){ flush(); }
+}
+
+void OutputBuffer::flush() {
+    if(m_buffer == nullptr) return; // there are no buffers to flush
+
+    // if we did not fill the whole buffer, we need to move ahead the columns in the expected positions
+    if(m_buffer_pos < buffer_sz()){
+        uint64_t* destinations_current = m_buffer + buffer_sz();
+        uint64_t* destinations_expected = m_buffer + m_buffer_pos;
+        memmove(destinations_expected, destinations_current, sizeof(uint64_t) * m_buffer_pos);
+
+        double* weights_current = reinterpret_cast<double*>( destinations_current + buffer_sz() );
+        double* weights_expected = reinterpret_cast<double*>( destinations_expected + m_buffer_pos );
+        memmove(weights_expected, weights_current, sizeof(uint64_t) * m_buffer_pos);
     }
+
+    m_writer.write_edges(reinterpret_cast<uint8_t*>(m_buffer), m_buffer_pos * sizeof(uint64_t) *3);
+    m_buffer = nullptr;
 }

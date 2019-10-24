@@ -81,7 +81,7 @@ class ABTree {
     K* KEYS(const Leaf* leaf) const;
     V* VALUES(const Leaf* leaf) const;
 
-    // Java-style iterator interface
+    // Java-like iterator interface
 public:
     class Iterator {
         friend class ABTree;
@@ -101,10 +101,10 @@ public:
     };
 
 private:
-    const size_t m_intnode_a; // lower bound for internal nodes
-    const size_t m_intnode_b; // upper bound for internal nodes
-    const size_t m_leaf_a; // lower bound for leaves
-    const size_t m_leaf_b; // upper bound for leaves
+    const size_t m_intnode_a; // lower bound for the internal nodes
+    const size_t m_intnode_b; // upper bound for the internal nodes
+    const size_t m_leaf_a; // lower bound for the leaves
+    const size_t m_leaf_b; // upper bound for the leaves
     const size_t m_min_sizeof_inode; // the minimum size, in bytes, of an allocated InternalNode
     const size_t m_min_sizeof_leaf; // the minimum size, in bytes, of an allocated Leaf
     Node* m_root = nullptr; // the root node of the B+ Tree
@@ -129,19 +129,19 @@ private:
     size_t get_lowerbound(int depth) const;
     size_t get_upperbound(int depth) const;
 
-    // Delete an existing node / leaf
+    // Delete an existing internal node or leaf
     void delete_node(Node* node, int depth) const;
 
     // It splits the child of `node' at index `child' in half and adds the new node as a new child of `node'.
     void split(InternalNode* inode, size_t child_index, int child_depth);
 
-    // It increases the height of tree by 1, by splitting the current root in half and introducing a new root.
+    // It increases the height of the tree by 1, by splitting the current root in half and introducing a new root.
     void split_root();
 
     // Insert the given key/value in the subtree rooted at the given `node'.
     void insert(Node* node, const K& key, const V& value, int depth);
 
-    // Merge two consecutive nodes together
+    // Merge two adjacent nodes together
     void merge(InternalNode* node, size_t child_index, int child_depth);
     void rotate_left(InternalNode* node, size_t child_index, int child_depth, size_t num_nodes);
     void rotate_right(InternalNode* node, size_t child_index, int child_depth, size_t num_nodes);
@@ -151,19 +151,19 @@ private:
     // Attempts to reduce the height of the tree, checking whether the root has only one child.
     bool reduce_tree();
 
-    // It removes the key/values in the interval [range_min, range_max] for the subtree rooted
+    // It removes the elements with keys in the interval [range_min, range_max] for the subtree rooted
     // at the given `node'. It returns `true' if any of the nodes in the given subtree does not
     // respect the constraint of their size in [A, B], false otherwise.
     // The parameter `min' is an output variable to return the minimum value in the subtree.
     bool remove_keys(Node* node, const K& range_min, const K& range_max, int depth, bool* is_min_set, K* min);
 
-    // It removes the children of node in the interval [index, index + length).
+    // It removes the children of the given node in the interval [index, index + length).
     void remove_subtrees(InternalNode* node, size_t index, size_t length, int children_depth);
 
     // Helper method, it performs the recursion of remove_subtrees
     void remove_subtrees_rec0(Node* node, int depth);
 
-    // Remove the given interval from the sub-tree starting at node
+    // Remove the given interval from the sub-tree starting at provided node
     void remove(Node* node, const K& keymin, const K& keymax, int depth);
 
     // Remove a single element from the tree
@@ -175,7 +175,7 @@ private:
     // Validate the parameters a, b (lower and upper bound respectively)
     void validate_bounds() const;
 
-    // Create a Java-style iterator
+    // Create a Java-like iterator
     std::unique_ptr<ABTree::Iterator> create_iterator(const K& max, Leaf* block, int64_t pos) const;
     std::unique_ptr<ABTree::Iterator> leaf_scan(Leaf* leaf, const K& min, const K& max) const;
 
@@ -213,7 +213,7 @@ public:
      * Invoke the given function for all elements in the range [min, max]. The function must have the following
      * signature: bool fn(const K& key, const V& value). It must return true to continue the scan to the next
      * element, otherwise false to stop the iteration.
-     * The elements in the tree must not modified while the iterator is in use.
+     * The elements in the tree must not be modified while the iterator is in use.
      */
     template<typename Callback>
     void scan(const K& min, const K& max, Callback fn) const;
@@ -227,14 +227,14 @@ public:
      *    // process key, value ...
      * }
      *
-     * The elements in the tree must not modified while the iterator is in use.
+     * The elements in the tree must not be modified while the iterator is in use.
      */
     std::unique_ptr<typename ABTree<K, V>::Iterator> iterator(const K& min, const K& max) const;
 
     /**
-     * Search and remove the given key from the tree. It returns true if the keys has been found and
+     * Search and remove the given key from the tree. It returns true if the key has been found and
      * removed, false otherwise. The parameter out_value, if not null, will be the old value associated
-     * to the key, when the key was found. In case of multiple matches (duplicates) it removes only one
+     * to the key, if the key was found. In case of multiple matches (duplicates), it removes only one
      * of the matching keys in an unspecified manner.
      */
     bool remove(const K& key, V* out_value);

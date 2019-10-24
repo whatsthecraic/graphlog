@@ -25,6 +25,7 @@ class Writer {
     std::streampos m_placeholder_vtx_final = 0;
     std::streampos m_placeholder_vtx_temp = 0;
     std::streampos m_placeholder_edges = 0;
+    std::streampos m_placeholder_num_edges = 0; // we will know the number of operations created only at the end of the generation process
 
     // asynchronously compress & write block of edges to the log file
     const uint64_t m_num_compression_threads; // number of threads to use for compression
@@ -91,6 +92,9 @@ public:
 
     // Close and flush the stream of edges to write
     void close_stream_edges();
+
+    // Write the final number of edges stored in the file
+    void write_num_edges(uint64_t num_edges);
 };
 
 // Implementation details
@@ -102,7 +106,7 @@ void Writer::set_property(const std::string &name, const T &value) {
 }
 
 constexpr uint64_t Writer::num_edges_per_block() {
-//    return 16; // debug only
+//    return 7; // debug only
     return (1ull << 24); // 16 M
 }
 

@@ -38,8 +38,9 @@ class Generator {
     // total number of blocks in the final edges
     uint64_t num_blocks_in_final_edges() const;
 
-    // total number of blocks in the number of operations
-    uint64_t num_blocks_in_operations() const;
+    // Actual generator, return the number of operations performed
+    uint64_t generate0();
+
 public:
     // Constructor
     Generator(const std::string& path_input_graph, const std::string& path_output_log, Writer& writer, double sf_frequencies, double ef_vertices, double ef_edges, double aging_factor, uint64_t seed);
@@ -47,6 +48,7 @@ public:
     // Destructor
     ~Generator();
 
+    // Generate the operations to perform
     void generate();
 
     // Total number of vertices that will appear in the final graph
@@ -60,7 +62,4 @@ public:
 
     // Total number of vertices generated
     uint64_t num_vertices() const { return num_final_vertices() + num_temporary_vertices(); }
-
-    // Total number of operations created
-    uint64_t num_operations() const { return m_num_operations; }
 };

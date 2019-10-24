@@ -46,6 +46,7 @@ Writer::Writer() : m_num_compression_threads(std::max<int64_t>(1, static_cast<in
     m_properties.emplace_back("internal.vertices.temporary.begin", "                   ");
     m_properties.emplace_back("internal.edges.begin", "                   ");
     m_properties.emplace_back("internal.edges.block_size", to_string(edges_block_size()));
+    m_properties.emplace_back("internal.edges.cardinality", "                   ");
 }
 
 Writer::~Writer(){
@@ -84,6 +85,8 @@ void Writer::create(const std::string& path_log_file){
             m_placeholder_vtx_temp = m_handle.tellp();
         } else if (property.first == "internal.edges.begin"){
             m_placeholder_edges = m_handle.tellp();
+        } else if (property.first == "internal.edges.cardinality"){
+            m_placeholder_num_edges = m_handle.tellp();
         }
         m_handle << property.second << "\n";
     }
@@ -242,6 +245,13 @@ void Writer::close_stream_edges() {
     }
     m_async_condvar.notify_all();
     m_async_writer.join();
+}
+
+void Writer::write_num_edges(uint64_t num_edges) {
+    auto marker_end = m_handle.tellp();
+    m_handle.seekp(m_placeholder_num_edges);
+    m_handle << num_edges;
+    m_handle.seekp(marker_end);
 }
 
 /*****************************************************************************
