@@ -2,7 +2,7 @@
 graphlog
 ---
 
-This utility creates a log of updates for the [GFE driver](https://github.com/whatsthecraic/gfe_driver). To reduce
+This utility creates a log of updates for the [GFE driver](https://github.com/cwida/gfe_driver). To reduce
 the overhead in deciding which updates to execute at runtime, the GFE driver reads the log
 prepared in advance by this tool, with the whole sequence of edge insertions and 
 edge deletions that needs to be carried. 
